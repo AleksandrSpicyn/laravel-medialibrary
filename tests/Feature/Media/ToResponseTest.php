@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\MediaCollections\Exceptions\InvalidConversion;
 use Spatie\TemporaryDirectory\TemporaryDirectory;
 
@@ -52,4 +54,28 @@ test('conversion responses use the conversion mime type', function () {
     expect($media->mime_type)->toBe('image/png');
     expect($media->toResponse(request(), 'thumb')->headers->get('Content-Type'))->toBe('image/jpeg');
     expect($media->toInlineResponse(request(), 'thumb')->headers->get('Content-Type'))->toBe('image/jpeg');
+});
+
+test('conversion responses read metadata from the conversions disk', function () {
+    $media = $this->testModelWithConversionsOnOtherDisk
+        ->addMedia($this->getTestPng())
+        ->preservingOriginal()
+        ->toMediaCollection('thumb');
+
+    expect($media->disk)->not->toBe($media->conversions_disk);
+    expect($media->toResponse(request(), 'thumb')->headers->get('Content-Type'))->toBe('image/jpeg');
+});
+
+test('conversion responses use a binary mime type when metadata is unavailable', function () {
+    $media = $this->testModelWithConversion
+        ->addMedia($this->getTestPng())
+        ->preservingOriginal()
+        ->toMediaCollection();
+
+    $disk = Mockery::mock(FilesystemAdapter::class);
+    $disk->shouldReceive('size')->once()->andReturn(100);
+    $disk->shouldReceive('mimeType')->once()->andReturn(false);
+    Storage::shouldReceive('disk')->with($media->conversions_disk)->once()->andReturn($disk);
+
+    expect($media->toResponse(request(), 'thumb')->headers->get('Content-Type'))->toBe('application/octet-stream');
 });

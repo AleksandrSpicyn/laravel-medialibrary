@@ -407,7 +407,7 @@ class Media extends Model implements Attachable, Htmlable, Responsable
             $disk = Storage::disk($this->conversions_disk);
             $path = $this->getPathRelativeToRoot($conversion);
             $size = $disk->size($path);
-            $mimeType = $disk->mimeType($path);
+            $mimeType = $disk->mimeType($path) ?: 'application/octet-stream';
         }
 
         $downloadHeaders = [
