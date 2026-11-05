@@ -42,3 +42,14 @@ test('to response throws on non-existing conversions', function () {
     expect(fn () => $media->toResponse(request(), 'non-existing-conversion'))
         ->toThrow(InvalidConversion::class, 'There is no conversion named `non-existing-conversion`');
 });
+
+test('conversion responses use the conversion mime type', function () {
+    $media = $this->testModelWithConversion
+        ->addMedia($this->getTestPng())
+        ->preservingOriginal()
+        ->toMediaCollection();
+
+    expect($media->mime_type)->toBe('image/png');
+    expect($media->toResponse(request(), 'thumb')->headers->get('Content-Type'))->toBe('image/jpeg');
+    expect($media->toInlineResponse(request(), 'thumb')->headers->get('Content-Type'))->toBe('image/jpeg');
+});
